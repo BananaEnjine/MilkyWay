@@ -1,2 +1,2 @@
-# MilkyWay-sample
-MilkyWayのsampleです
+# MilkyWay
+MilkyWay
