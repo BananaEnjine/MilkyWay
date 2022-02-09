@@ -1,117 +1,117 @@
 <!DOCTYPE html>
 <html lang="ja-jp">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="favicon.ico">
-    <!--SDKのインポート-->
-    <script src="https://cdn.webrtc.ecl.ntt.com/skyway-4.4.1.js"></script>
-    <title>MilkyWay</title>
-  </head>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico">
+  <!-- Skyway SDK のインポート -->
+  <script src="https://cdn.webrtc.ecl.ntt.com/skyway-4.4.1.js"></script>
+  <title>MilkyWay</title>
+</head>
 
-  <body>
-    <!--コンテナ-->
-    <!--<div id="container">-->
+<body>
+  <!--コンテナ-->
+  <!--<div id="container">-->
 
-    <!--ヘッダー-->
-    <header>
-      <h1>MilkyWay</h1>
-      <section id="greeting">
-        <p>
-          <span>MilkyWay</span>は誰でもお軽にご利用できるビデオチャットサービスです。
-        </p>
-      </section>
-    </header>
+  <!--ヘッダー-->
+  <header>
+    <h1>MilkyWay</h1>
+    <section id="greeting">
+      <p>
+        <span>MilkyWay</span>は誰でもお軽にご利用できるビデオチャットサービスです。
+      </p>
+    </section>
+  </header>
 
-    <!--コンテンツ-->
-    <main>
-      <!--ID-->
-      <section id="ID">
-        <p>
-          Your ID: <span id="my-id"></span>
-          <br>
-          お相手のIDを入力してください。
-        </p>
+  <!--コンテンツ-->
+  <main>
+    <!--ID-->
+    <section id="ID">
+      <p>
+        Your ID: <span id="my-id"></span>
+        <br>
+        お相手のIDを入力してください。
+      </p>
+      <div>
+        <input type="text" placeholder="お相手のID" id="their-id">
+        <button id="make-call">接続</button>
+        <button id="close-call">切断</button>
+      </div>
+    </section>
+
+    <!--情報メディア(映像, チャット)-->
+    <section id="media">
+      <div id="media-left">
+        <video id="their-video" autoplay playsinline></video>
+        <br>
+        <!--<p>字幕：</p>-->
+        <div id="sended-subtitles">
+          字幕機能はOFFになっています。<br>&ensp;設定 &gt; 字幕機能
+        </div>
+      </div>
+
+      <div id="media-right">
+        <video id="my-video" autoplay muted playsinline></video>
+        <!--チャット-->
         <div>
-          <input type="text" placeholder="お相手のID" id="their-id"></input>
-          <button id="make-call">接続</button>
-          <button id="close-call">切断</button>
-        </div>
-      </section>
-
-      <!--情報メディア(映像, チャット)-->
-      <section id="media">
-        <div id="media-left">
-          <video id="their-video" autoplay playsinline></video>
-          <br>
-          <!--<p>字幕：</p>-->
-          <div id="sended-subtitles">
-            字幕機能はOFFになっています。<br>&ensp;設定 > 字幕機能
+          <p>&ensp;メッセージ</p>
+          <div class="messages">
+            <!--preを変更した場合, cssにも目を通せ-->
+            <p id="all-messages"></p>
           </div>
-        </div>
-
-        <div id="media-right">
-          <video id="my-video" autoplay muted playsinline></video>
-          <!--チャット-->
           <div>
-            <p>&ensp;メッセージ</p>
-            <div class="messages">
-              <!--preを変更した場合, cssにも目を通せ-->
-              <p id="all-messages"></p>
-            </div>
-            <div>
-              <input type="text" placeholder="送信メッセージ" id="send-messages">
-              <button id="send-trigger">送信</button>
-            </div>
+            <input type="text" placeholder="送信メッセージ" id="send-messages">
+            <button id="send-trigger">送信</button>
           </div>
         </div>
+      </div>
 
-      </section>
+    </section>
 
-      <section id="option">
-        <ul class="setting">
-          <li>
-            <span>設定</span>
-            <ul>
-              <li><span>字幕機能<input type="checkbox" id="subtitles-btn"
-                    onclick="subStartStop();console.log(`字幕機能: ${subtitlesBtn.checked}`)"></span></li>
-              <li><span>音読機能<input type="checkbox" id="synthesize-btn" checked="checked"
-                    onclick="synStartStop();console.log(`読み上げ: ${synthesizeBtn.checked}`)"></span></li>
-            </ul>
-          </li>
-        </ul>
-      </section>
-    </main>
+    <section id="option">
+      <ul class="setting">
+        <li>
+          <span>設定</span>
+          <ul>
+            <li><span>字幕機能<input type="checkbox" id="subtitles-btn"
+                  onclick="make_subtitles();"></span></li>
+            <li><span>音読機能<input type="checkbox" id="synthesize-btn" checked="checked"
+                  onclick="make_speech();"></span></li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+  </main>
 
-    <footer>
-      <details>
-        <summary><span>MilkyWay</span>とは？</summary>
-        <p>
-          <span>MilkyWay</span>は誰でもお軽にご利用できることを目標としたビデオチャットサービスです。<br>
-          字幕機能とメッセージの音読機能を搭載しております。
-        </p>
-      </details>
-      <details>
-        <summary>ご利用方法</summary>
-        <p>
-          1. カメラとマイクのアクセスを許可してください。<br>
-          2. お相手のIDをテキストボックスに入力して, 接続ボタンを押してください。<br>
-          3. 字幕機能とメッセージの音読機能は設定メニューのチェックボックスで有効と無効の切り替えができます。<br>
-          4. 切断ボタンを押すことで相手との通信を切ることができます。<br>
-          <br>
-          ※ 接続には数分のお時間を要する場合があります。<br>
-          ※ 通信の切断が行われると, このページは自動的にリロードがされて, 新しいIDが表示されます。
-        </p>
-      </details>
-      <details>
-        <summary>利用規約</summary>
-        <p>details</p>
-      </details>
-    </footer>
-    <script src="./script.js"></script>
-  </body>
+  <footer>
+    <details>
+      <summary><span>MilkyWay</span>とは？</summary>
+      <p>
+        <span>MilkyWay</span>は誰でもお軽にご利用できることを目標としたビデオチャットサービスです。<br>
+        字幕機能とメッセージの音読機能を搭載しております。
+      </p>
+    </details>
+    <details>
+      <summary>ご利用方法</summary>
+      <p>
+        1. カメラとマイクのアクセスを許可してください。<br>
+        2. お相手のIDをテキストボックスに入力して, 接続ボタンを押してください。<br>
+        3. 字幕機能とメッセージの音読機能は設定メニューのチェックボックスで有効と無効の切り替えができます。<br>
+        4. 切断ボタンを押すことで相手との通信を切ることができます。<br>
+        <br>
+        ※ 接続には数分のお時間を要する場合があります。<br>
+        ※ 通信の切断が行われると, このページは自動的にリロードがされて, 新しいIDが表示されます。
+      </p>
+    </details>
+    <details>
+      <summary>利用規約</summary>
+      <p>details</p>
+    </details>
+  </footer>
+  <script src="./script.js"></script>
+</body>
 
 </html>
