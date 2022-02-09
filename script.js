@@ -211,6 +211,13 @@ function setUp_EventHandler_peer(peer) {
       console.log("接続先の Peer からメディアチャネル");
     });
 
+    /* 自分が相手からチャットを開かれたときのイベント */
+    peer.on('connection', dataConnection => {
+      DATA_CONNECTION = dataConnection;
+      setUp_EventHandler_dataConnection(DATA_CONNECTION);
+
+    });
+
     /* 相手との接続が切断されたときのイベント */
     peer.on('close', () => {
       alert('通信が切断されました。');
@@ -279,6 +286,26 @@ function setUp_EventHandler_dataConnection(dataConnection) {
       }
     });
 
+    // メッセージを送信
+    function onClickSend() {
+      const data = "01:" + SEND_MESSAGE.value;
+      DATA_CONNECTION.send(data);
+      let date = new Date();
+      MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  You   :<br>&ensp;${data.substr(3)}`;
+      SEND_MESSAGE.value = '';
+    }
+
+    //字幕イベントハンドラ(確定する度)
+    RECOGNITION.onresult = e => {
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (!e.results[i].isFinal) continue
+        const { transcript } = e.results[i][0]
+        let subtitles = transcript; // 字幕の文字列
+        const data = "00:" + subtitles;
+        DATA_CONNECTION.send(data);
+      }
+    }
+
     // DataConnection#close()が呼ばれたとき、または接続先 Peer とのデータチャネル接続が切断されたとき
     dataConnection.once('close', () => {
       MESSAGE_LIST.innerHTML += `=== チャットルームが閉じられました ===`;
@@ -337,16 +364,16 @@ CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに�
     //   SEND_MESSAGE.value = '';
     // }
 
-    //字幕イベントハンドラ(確定する度)
-    RECOGNITION.onresult = e => {
-      for (var i = e.resultIndex; i < e.results.length; i++) {
-        if (!e.results[i].isFinal) continue
-        const { transcript } = e.results[i][0]
-        let subtitles = transcript; // 字幕の文字列
-        const data = "00:" + subtitles;
-        DATA_CONNECTION.send(data);
-      }
-    }
+    // //字幕イベントハンドラ(確定する度)
+    // RECOGNITION.onresult = e => {
+    //   for (var i = e.resultIndex; i < e.results.length; i++) {
+    //     if (!e.results[i].isFinal) continue
+    //     const { transcript } = e.results[i][0]
+    //     let subtitles = transcript; // 字幕の文字列
+    //     const data = "00:" + subtitles;
+    //     DATA_CONNECTION.send(data);
+    //   }
+    // }
   }
 };
 
@@ -370,68 +397,29 @@ const setPartnerVideo = mediaConnection => {
   });
 }
 
-// 着信側---------------------------------------------------------------------------------------
-PEER.on('connection', DATA_CONNECTION => {
-  DATA_CONNECTION.on('open', () => {
-    MESSAGE_LIST.innerHTML += `=== チャットルームが開かれました(着信側) ===`;
+// // 着信側---------------------------------------------------------------------------------------
+// PEER.on('connection', DATA_CONNECTION => {
 
-    SEND_BUTTON.addEventListener('click', onClickSend);
-    // 非推奨のメソッドではあるが必要不可欠
-    peer.disconnect();
-    CONNECTION = true;
-    alert(CONNECTION);
-  });
 
-  // データを受信
-  DATA_CONNECTION.on('data', data => {
-    if ("00" == data.substr(0, 2)) {
-      if (SUBTITLES_BUTTON.checked) {
-        SUBTITLES_TEXT.textContent = data.substr(3);
-        // SUBTITLES_TEXT.innerHTML = data.substr(3);
-      }
-    } else if ("01" == data.substr(0, 2)) {
-      let date = new Date();
-      MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  Remote:<br>&ensp;${data.substr(3)}`;
-      SYNTHESIS.text = data.substr(3);
-      console.log(`SYNTHESIS.text(着信側): ${SYNTHESIS.text}`)
-      if (SYNTHESIS_BUTTON.checked) {
-        speechSynthesis.speak(SYNTHESIS);
-      }
-    }
-  });
 
-  // DATA_CONNECTION.once('close', () => {
-  //   MESSAGE_LIST.innerHTML += `<br>=== チャットルームが閉じられました ===`;
-  //   SEND_BUTTON.removeEventListener('click', onClickSend);
-  //   // peer = new Peer({
-  //   //   key: 'c1ff404a-1d46-40c8-a9b1-c6a74bdf07be',
-  //   //   debug: 3
-  //   // });
-  //   // peer.on('open', () => {
-  //   //   document.getElementById('my-id').textContent = peer.id;
-  //   // });
-  //   // CONNECTION = false;
-  //   // alert(CONNECTION);
-  //   location.reload();
-  // });
 
-  function onClickSend() {
-    let data = "01:" + SEND_MESSAGE.value;
-    DATA_CONNECTION.send(data);
-    let date = new Date();
-    MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)} You:<br>&ensp;${data.substr(3)}\n`;
-    SEND_MESSAGE.value = '';
-  }
-  //字幕イベントハンドラ(確定する度)
-  RECOGNITION.onresult = e => {
-    for (var i = e.resultIndex; i < e.results.length; i++) {
-      if (!e.results[i].isFinal) continue
-      const { transcript } = e.results[i][0]
-      let subtitles = transcript; // 字幕の文字列
-      const data = "00:" + subtitles;
-      DATA_CONNECTION.send(data);
-      console.log("You say, ");
-      console.log(subtitles);
-    }
-  }
-});
+//   // function onClickSend() {
+//   //   let data = "01:" + SEND_MESSAGE.value;
+//   //   DATA_CONNECTION.send(data);
+//   //   let date = new Date();
+//   //   MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)} You:<br>&ensp;${data.substr(3)}\n`;
+//   //   SEND_MESSAGE.value = '';
+//   // }
+//   //字幕イベントハンドラ(確定する度)
+//   RECOGNITION.onresult = e => {
+//     for (var i = e.resultIndex; i < e.results.length; i++) {
+//       if (!e.results[i].isFinal) continue
+//       const { transcript } = e.results[i][0]
+//       let subtitles = transcript; // 字幕の文字列
+//       const data = "00:" + subtitles;
+//       DATA_CONNECTION.send(data);
+//       console.log("You say, ");
+//       console.log(subtitles);
+//     }
+//   }
+// });
