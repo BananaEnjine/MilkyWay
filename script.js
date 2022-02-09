@@ -185,7 +185,7 @@ function make_PeerObject() {
 /**************************************************************
  *                  通信に関するイベントリスナ                  *
  **************************************************************/
-function setUp_EventHandler_skyway(peer, dataConnection) {
+function setUp_EventHandler_peer(peer) {
   /* peerオブジェクトの有無を調べる */
   if (peer != null) { // Peerオブジェクトが生成されているとき
     console.log("I make Peer Object and try connnecting with Signaling Server...");
@@ -208,6 +208,7 @@ function setUp_EventHandler_skyway(peer, dataConnection) {
       mediaConnection.answer(LOCAL_STREAM);
       setPartnerVideo(mediaConnection); // 発信した相手の映像をhtmlへ反映する
       console.log("You are maked a call.");
+      console.log("接続先の Peer からメディアチャネル");
     });
 
     /* 相手との接続が切断されたときのイベント */
@@ -216,6 +217,33 @@ function setUp_EventHandler_skyway(peer, dataConnection) {
       console.log("The connection is breaked.");
       // リロードするか否か......................................................................
     });
+
+    /* 何らかの不具合が生じたときのイベント */
+    peer.on('error', function (error) {
+      console.warn(`ERROR: ${error.type}\n  ${error.message}`);
+
+      /* 不具合に対する処理 */
+      if (error.type == "invalid-key") { // シグナリングサーバとの接続に失敗したとき
+        PEER = null; // peerオブジェクトの無効化
+
+        let str1 = "シグナリングサーバーとの接続に失敗しました。";
+        let str2 = "ただいま, サービスのメンテナンス中です。"
+        alert(`${str1}\n${str2}`);
+        console.log("Sorry, You can not connect signaling server.");
+      } else if (error.type == "peer-unavailable") {
+        alert("正しい相手方のIDを入力してください");
+        let str1 = "You input wrong partner PeerID. ";
+        let str2 = "Please tell me correct his PeerID. "
+        console.log(`${str1}${str2}`);
+      }
+    });
+  }
+}
+
+function setUp_EventHandler_dataConnection(dataConnection) {
+  /* dataオブジェクトの有無を調べる */
+  if (dataConnection != null) { // Peerオブジェクトが生成されているとき
+    console.log("You can make dataConnection Object");
 
     /* データチャネルが接続されたとき */
     dataConnection.once('open', async () => {
@@ -262,29 +290,8 @@ function setUp_EventHandler_skyway(peer, dataConnection) {
        * +++++++++++++++++++++++++++++++++++++++++++++++++ */
       location.reload(); // サイトをリロードし, 新しくpeerオブジェクトを生成してシグナリングサーバと通信を行う. 
     });
-
-    /* 何らかの不具合が生じたときのイベント */
-    peer.on('error', function (error) {
-      console.warn(`ERROR: ${error.type}\n  ${error.message}`);
-
-      /* 不具合に対する処理 */
-      if (error.type == "invalid-key") { // シグナリングサーバとの接続に失敗したとき
-        PEER = null; // peerオブジェクトの無効化
-
-        let str1 = "シグナリングサーバーとの接続に失敗しました。";
-        let str2 = "ただいま, サービスのメンテナンス中です。"
-        alert(`${str1}\n${str2}`);
-        console.log("Sorry, You can not connect signaling server.");
-      } else if (error.type == "peer-unavailable") {
-        alert("正しい相手方のIDを入力してください");
-        let str1 = "You input wrong partner PeerID. ";
-        let str2 = "Please tell me correct his PeerID. "
-        console.log(`${str1}${str2}`);
-      }
-    });
   }
 }
-
 
 /**************************************************************
  *              接続ボタンに関するイベントハンドラ              *
@@ -307,6 +314,7 @@ CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに�
         /* 相手に発信し, テキストチャットの開室を試みる */
         const mediaConnection = PEER.call(theirID, LOCAL_STREAM); // 相手に発信する
         DATA_CONNECTION = PEER.connect(theirID); // テキストチャットの開室
+        setUp_EventHandler_dataConnection(DATA_CONNECTION);
         setPartnerVideo(mediaConnection); // 着信をうける相手の映像をhtmlへ反映する
         console.log("You try making call...");
       } else {
@@ -320,14 +328,14 @@ CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに�
 
 
 
-    // メッセージを送信
-    function onClickSend() {
-      const data = "01:" + SEND_MESSAGE.value;
-      DATA_CONNECTION.send(data);
-      let date = new Date();
-      MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  You   :<br>&ensp;${data.substr(3)}`;
-      SEND_MESSAGE.value = '';
-    }
+    // // メッセージを送信
+    // function onClickSend() {
+    //   const data = "01:" + SEND_MESSAGE.value;
+    //   DATA_CONNECTION.send(data);
+    //   let date = new Date();
+    //   MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  You   :<br>&ensp;${data.substr(3)}`;
+    //   SEND_MESSAGE.value = '';
+    // }
 
     //字幕イベントハンドラ(確定する度)
     RECOGNITION.onresult = e => {
@@ -363,7 +371,7 @@ const setPartnerVideo = mediaConnection => {
 }
 
 // 着信側---------------------------------------------------------------------------------------
-peer.on('connection', DATA_CONNECTION => {
+PEER.on('connection', DATA_CONNECTION => {
   DATA_CONNECTION.on('open', () => {
     MESSAGE_LIST.innerHTML += `=== チャットルームが開かれました(着信側) ===`;
 
