@@ -242,7 +242,7 @@ function setUp_EventHandler_skyway(peer, dataConnection) {
         /* チャット欄に反映する */
         MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  Remote:<br>&ensp;${str_main}`; // 文字列の作成
 
-        
+
         SYNTHESIS.text = str_main;
         console.log(`SYNTHESIS.text(発信側): ${SYNTHESIS.text}`)
         if (SYNTHESIS_BUTTON.checked) {
