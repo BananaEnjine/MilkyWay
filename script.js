@@ -51,7 +51,7 @@ const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 相手の
     }
 
     PEER = make_PeerObject();
-    setUp_EventHandler_skyway(PEER, DATA_CONNECTION);
+    setUp_EventHandler_skyway(PEER);
   }
 
 }());
