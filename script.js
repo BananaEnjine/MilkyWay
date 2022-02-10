@@ -121,9 +121,9 @@ function setUp_SpeechRecognition() {
   RECOGNITION.continuous = true; // 継続的な音声認識の設定
   RECOGNITION.interimResults = false; // 認識途中の結果を取得するか否か
   RECOGNITION.lang = 'ja-JP' // 認識する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]  
-  RECOGNITION.onend = reset; // RECOGNITION.stop()がされたときに関数resrt()を呼び出す
+  RECOGNITION.onend = reset; // 音声認識が終了したときのイベントリスナ(reset関数を発火させる)
   let recognition_flag = true;
-  //////////////////////////////////////////// reset(recognition_flag); // 音声認識の自動停止を防ぐ////////////////////////////////////////////
+  reset(recognition_flag); // 音声認識の自動停止を防ぐ
 
   /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
   SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
