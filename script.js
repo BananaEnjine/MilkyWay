@@ -32,6 +32,8 @@ const MESSAGE_LIST = document.getElementById('all-messages'); // テキストチ
 const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 相手の音声を合成した字幕の文字列
 
 /* htmlへのイベントリスナ */
+SUBTITLES_BUTTON.addEventListener('click', make_subtitles); // チェックボックス"字幕機能" をクリックしたときに発火する
+SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボックス"音読機能"
 CONNECTION_BUTTON.addEventListener('click', connect); // 接続ボタンを押したときに発火する
 DISCONNECTION_BUTTON.addEventListener('click', disconnect); // 切断ボタンを押したときに発火する
 SEND_BUTTON.addEventListener('click', send_message); // 送信ボタンを押したときにメッセージを送る関数を発火する
