@@ -358,22 +358,24 @@ function connect() { // 接続ボタンを押したときに発火する
       }
     }
 
-    // イベントリスナを設置する関数
-    const setPartnerVideo = mediaConnection => {
-      mediaConnection.on('stream', stream => {
-        // video要素にカメラ映像をセットして再生
-        const videoElm = document.getElementById('their-video')
-        videoElm.srcObject = stream;
-        videoElm.play();
-      });
-    }
+
   }
+}
+
+// イベントリスナを設置する関数
+const setPartnerVideo = mediaConnection => {
+  mediaConnection.on('stream', stream => {
+    // video要素にカメラ映像をセットして再生
+    const videoElm = document.getElementById('their-video')
+    videoElm.srcObject = stream;
+    videoElm.play();
+  });
 }
 
 /**************************************************************
  *                    相手との通信を切断する                   *
  **************************************************************/
-function disconnect(){
+function disconnect() {
   if (CONNECTION) {
     PEER.destroy(); // シグナリングサーバを含む全ての通信を切る
   } else {
