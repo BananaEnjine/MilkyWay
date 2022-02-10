@@ -21,17 +21,20 @@ const VALID = 0;
 const INVALID = 1;
 
 
-/* HTMLへの紐づけ */
+/* htmlへの紐づけ */
 const SUBTITLES_BUTTON = document.getElementById('subtitles-btn'); // チェックボックス"字幕機能"
 const SYNTHESIS_BUTTON = document.getElementById('synthesize-btn'); // チェックボックス"音読機能"
 const CONNECTION_BUTTON = document.getElementById('make-call'); // 接続ボタン
 const DISCONNECTION_BUTTON = document.getElementById('close-call'); // 切断ボタン
 const SEND_MESSAGE = document.getElementById('send-messages'); // チャットルームで送信する入力メッセージ
-const SEND_BUTTON = document.getElementById('send-trigger"'); // 送信ボタン
+const SEND_BUTTON = document.getElementById('send-trigger'); // 送信ボタン
 const MESSAGE_LIST = document.getElementById('all-messages'); // テキストチャットでのメッセージ一覧
 const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 相手の音声を合成した字幕の文字列
-// let theirID;
 
+/* htmlへのイベントリスナ */
+CONNECTION_BUTTON.addEventListener('click', connect); // 接続ボタンを押したときに発火する
+DISCONNECTION_BUTTON.addEventListener('click', disconnect); // 切断ボタンを押したときに発火する
+SEND_BUTTON.addEventListener('click', send_message); // 送信ボタンを押したときにメッセージを送る関数を発火する
 
 /*---------------------------*
  |       main function       |
@@ -53,7 +56,6 @@ const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 相手の
     PEER = make_PeerObject();
     setUp_EventHandler_peer(PEER);
   }
-
 }());
 
 /*---------------------------*
@@ -100,10 +102,12 @@ function can_SpeechRecognition() {
   /* 使用しているブラウザの対応確認 */
   if ('SpeechRecognition' in window) { // ブラウザがAPIに対応しているとき
     console.log("Your browser is supported by Web Speech API");
+
     return 1;
   } else { // ブラウザがAPIに対応していないとき
     alert("お使いのブラウザは音声合成に対応していません。")
     console.log("Your browser is not supported by Web Speech API");
+
     return 0;
   }
 }
@@ -119,7 +123,7 @@ function setUp_SpeechRecognition() {
   RECOGNITION.lang = 'ja-JP' // 認識する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]  
   RECOGNITION.onend = reset; // RECOGNITION.stop()がされたときに関数resrt()を呼び出す
   let recognition_flag = true;
-  // reset(recognition_flag); // 音声認識の自動停止を防ぐ
+  //////////////////////////////////////////// reset(recognition_flag); // 音声認識の自動停止を防ぐ////////////////////////////////////////////
 
   /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
   SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
@@ -150,7 +154,7 @@ function make_subtitles() {
   } else {
     SUBTITLES_TEXT.innerHTML = "字幕機能はOFFになっています。<br>&ensp;設定 > 字幕機能";
   }
-  console.log(`字幕機能: ${SUBTITLES_BUTTON.checked}`)
+  console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
 }
 
 /**************************************************************
@@ -162,9 +166,8 @@ function make_speech() {
       speechSynthesis.cancel(); // 音読を中断する
     }
   }
-  console.log(`読み上げ: ${SYNTHESIS_BUTTON.checked}`)
+  console.log(`The checkbox of speeching is clicked: Its value is ${SYNTHESIS_BUTTON.checked}.`);
 }
-
 
 /*---------------------------*
  |   SkyWay Javascript SDK   |
@@ -183,11 +186,11 @@ function make_PeerObject() {
 }
 
 /**************************************************************
- *                  通信に関するイベントリスナ                  *
+ *              相手との通信に関するイベントリスナ              *
  **************************************************************/
 function setUp_EventHandler_peer(peer) {
   /* peerオブジェクトの有無を調べる */
-  if (peer != null) { // Peerオブジェクトが生成されているとき
+  if (peer != null) { // オブジェクトが生成されているとき
     console.log("I make Peer Object and try connnecting with Signaling Server...");
 
     /* シグナリングサーバへの接続が成功したときのイベント */
@@ -214,13 +217,13 @@ function setUp_EventHandler_peer(peer) {
     /* 自分が相手からチャットを開かれたときのイベント */
     peer.on('connection', dataConnection => {
       DATA_CONNECTION = dataConnection;
-      setUp_EventHandler_dataConnection(DATA_CONNECTION);
+      setUp_EventHandler_dataConnection(PEER, DATA_CONNECTION);
 
     });
 
     /* 相手との接続が切断されたときのイベント */
     peer.on('close', () => {
-      alert('通信が切断されました。');
+      // alert('通信が切断されました。');
       console.log("The connection is breaked.");
       // リロードするか否か......................................................................
     });
@@ -237,28 +240,30 @@ function setUp_EventHandler_peer(peer) {
         let str2 = "ただいま, サービスのメンテナンス中です。"
         alert(`${str1}\n${str2}`);
         console.log("Sorry, You can not connect signaling server.");
-      } else if (error.type == "peer-unavailable") {
+      } else if (error.type == "peer-unavailable") { // 接続しようとした相手のIDが誤っているとき
         alert("正しい相手方のIDを入力してください");
-        let str1 = "You input wrong partner PeerID. ";
-        let str2 = "Please tell me correct his PeerID. "
-        console.log(`${str1}${str2}`);
+        console.log("You input wrong partner PeerID. Please tell me correct his PeerID. ");
       }
     });
+  } else {
+    console.log("I do not make Peer Object. So, I can not try connnecting with Signaling Server!");
   }
 }
 
-function setUp_EventHandler_dataConnection(dataConnection) {
-  /* dataオブジェクトの有無を調べる */
-  if (dataConnection != null) { // Peerオブジェクトが生成されているとき
+/**************************************************************
+ *             チャットルームに関するイベントリスナ             *
+ **************************************************************/
+function setUp_EventHandler_dataConnection(peer, dataConnection) {
+  /* dataConnectionオブジェクトの有無を調べる */
+  if (dataConnection != null) { // チャットルームのオブジェクトが生成されているとき
     console.log("You can make dataConnection Object");
 
     /* データチャネルが接続されたとき */
     dataConnection.once('open', async () => {
-      MESSAGE_LIST.innerHTML += `=== チャットルームが開かれました(発信側) ===`;
-      SEND_BUTTON.addEventListener('click', onClickSend);
+      MESSAGE_LIST.innerHTML += `=== チャットルームが開かれました===`;
       peer.disconnect(); // シグナリングサーバとの通信を切断し, 混線を防ぐ
-      CONNECTION = true;
-      alert(CONNECTION);
+      CONNECTION = true; // 相手との通信を開始した旨を記録する
+      console.log("Now, you succeed connection with partner. Good luck communication!");
     });
 
     /* 相手から字幕やチャットの文字列を受信したとき */
@@ -267,63 +272,64 @@ function setUp_EventHandler_dataConnection(dataConnection) {
       let str_type = data.substr(0, 2); // 受け取った文字列について文頭の2文字を取得する
       let str_main = data.substr(3); // 受け取った文字列について4文字目以降の文字を取得する
 
-      /* 受信した文字列をタイプstr_typeで判別する */
+      console.log(`Your partner send you message, It is "${data}."`);
+      /* 受信した文字列をタイプstr_typeで判別する["00": 字幕, "01": チャット] */
       if ("00" == str_type) { // 受信した文字列が字幕のとき
         if (SUBTITLES_BUTTON.checked) { // 字幕機能がオンのとき
           SUBTITLES_TEXT.textContent = str_main; // 字幕を表示する
+          console.log("Its type is subtitles. So, I show message on subtitles box. ");
         }
       } else if ("01" == str_type) { // 受信した文字列がチャットのとき
-        let date = new Date(); // 時間の取得
+        /* 時間の取得 */
+        let date = new Date(); // 時間オブジェクトの生成
+        let hour = ("0" + date.getHours()).slice(-2);
+        let minute = ("0" + date.getMinutes()).slice(-2);
+
         /* チャット欄に反映する */
-        MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  Remote:<br>&ensp;${str_main}`; // 文字列の作成
+        MESSAGE_LIST.innerHTML += `<br>${hour}:${minute}  Remote:<br>&ensp;${str_main}`; // 文字列の作成
+        console.log("Its type is chat. So, I show message on chat box. ");
 
-
-        SYNTHESIS.text = str_main;
-        console.log(`SYNTHESIS.text(発信側): ${SYNTHESIS.text}`)
-        if (SYNTHESIS_BUTTON.checked) {
-          speechSynthesis.speak(SYNTHESIS);
+        /* 音読機能 */
+        if (SYNTHESIS_BUTTON.checked) { // 音読機能がオンになっているとき
+          SYNTHESIS.text = str_main; // 読み上げる文字列を設定する
+          speechSynthesis.speak(SYNTHESIS); // チャットメッセージを読み上げる
+          console.log(`And, I speak message sended by partner. It is "${SYNTHESIS.text}."`);
         }
       }
     });
 
-    // メッセージを送信
-    function onClickSend() {
-      const data = "01:" + SEND_MESSAGE.value;
-      DATA_CONNECTION.send(data);
-      let date = new Date();
-      MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  You   :<br>&ensp;${data.substr(3)}`;
-      SEND_MESSAGE.value = '';
-    }
-
-    //字幕イベントハンドラ(確定する度)
+    /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
     RECOGNITION.onresult = e => {
       for (var i = e.resultIndex; i < e.results.length; i++) {
         if (!e.results[i].isFinal) continue
         const { transcript } = e.results[i][0]
-        let subtitles = transcript; // 字幕の文字列
-        const data = "00:" + subtitles;
-        DATA_CONNECTION.send(data);
+        let subtitles = transcript; // 生成された文字列を受け取る
+
+        const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+        DATA_CONNECTION.send(data); // 相手に送信する
+        console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
       }
     }
 
-    // DataConnection#close()が呼ばれたとき、または接続先 Peer とのデータチャネル接続が切断されたとき
+    /* DataConnection#close()が呼ばれたとき, または接続先 Peer とのデータチャネル接続が切断されたとき */
     dataConnection.once('close', () => {
       MESSAGE_LIST.innerHTML += `=== チャットルームが閉じられました ===`;
-      SEND_BUTTON.removeEventListener('click', onClickSend);
+      // SEND_BUTTON.removeEventListener('click', send_message);
       /* +++++++++++++++++++++++++++++++++++++++++++++++++ *
        * // 可能であれば以下の処理が好ましい                 *
        * 新しいPeerオブジェクトの生成;                      *
        * シグナリングサーバと接続を再開する;                 *
        * +++++++++++++++++++++++++++++++++++++++++++++++++ */
+      alert("相手との通信が途絶えました。ウェブページをリロードします。");
       location.reload(); // サイトをリロードし, 新しくpeerオブジェクトを生成してシグナリングサーバと通信を行う. 
     });
   }
 }
 
 /**************************************************************
- *              接続ボタンに関するイベントハンドラ              *
+ *                        相手に発信する                       *
  **************************************************************/
-CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに発火する
+function connect() { // 接続ボタンを押したときに発火する
   if (PEER == null) { // シグナリングサーバとの接続ができていないとき
     alert("サーバーとの通信にトラブルが発生しているため, この操作は無効です。");
     console.log("Sorry, because of trouble you can not make call.");
@@ -341,7 +347,7 @@ CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに�
         /* 相手に発信し, テキストチャットの開室を試みる */
         const mediaConnection = PEER.call(theirID, LOCAL_STREAM); // 相手に発信する
         DATA_CONNECTION = PEER.connect(theirID); // テキストチャットの開室
-        setUp_EventHandler_dataConnection(DATA_CONNECTION);
+        setUp_EventHandler_dataConnection(PEER, DATA_CONNECTION);
         setPartnerVideo(mediaConnection); // 着信をうける相手の映像をhtmlへ反映する
         console.log("You try making call...");
       } else {
@@ -352,74 +358,53 @@ CONNECTION_BUTTON.onclick = () => { // 接続ボタンが押されたときに�
       }
     }
 
-
-
-
-    // // メッセージを送信
-    // function onClickSend() {
-    //   const data = "01:" + SEND_MESSAGE.value;
-    //   DATA_CONNECTION.send(data);
-    //   let date = new Date();
-    //   MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}  You   :<br>&ensp;${data.substr(3)}`;
-    //   SEND_MESSAGE.value = '';
-    // }
-
-    // //字幕イベントハンドラ(確定する度)
-    // RECOGNITION.onresult = e => {
-    //   for (var i = e.resultIndex; i < e.results.length; i++) {
-    //     if (!e.results[i].isFinal) continue
-    //     const { transcript } = e.results[i][0]
-    //     let subtitles = transcript; // 字幕の文字列
-    //     const data = "00:" + subtitles;
-    //     DATA_CONNECTION.send(data);
-    //   }
-    // }
+    // イベントリスナを設置する関数
+    const setPartnerVideo = mediaConnection => {
+      mediaConnection.on('stream', stream => {
+        // video要素にカメラ映像をセットして再生
+        const videoElm = document.getElementById('their-video')
+        videoElm.srcObject = stream;
+        videoElm.play();
+      });
+    }
   }
-};
+}
 
-// 切断ボタン押下
-DISCONNECTION_BUTTON.onclick = () => {
+/**************************************************************
+ *                    相手との通信を切断する                   *
+ **************************************************************/
+function disconnect(){
   if (CONNECTION) {
-    // シグナリングサーバを含む全ての通信を切る
-    peer.destroy();
+    PEER.destroy(); // シグナリングサーバを含む全ての通信を切る
   } else {
     alert("現在, 通信はしておりません");
   }
 }
 
-// イベントリスナを設置する関数
-const setPartnerVideo = mediaConnection => {
-  mediaConnection.on('stream', stream => {
-    // video要素にカメラ映像をセットして再生
-    const videoElm = document.getElementById('their-video')
-    videoElm.srcObject = stream;
-    videoElm.play();
-  });
+/**************************************************************
+ *                 チャットのメッセージを送る                  *
+ **************************************************************/
+function send_message() { // 送信ボタンを押したときに発火する
+  if (PEER == null) {
+    alert("サーバーとの通信にトラブルが発生しているため, この操作は無効です。");
+    console.log("Sorry, because of trouble you can not make call.");
+    return;
+  } else if (DATA_CONNECTION == null) {
+    alert("相手との通信がないため, この操作は無効です。");
+    console.log("Sorry, because of no connection with partner you can not send message.");
+    return;
+  }
+
+  let message = SEND_MESSAGE.value; // 自分が相手に送るメッセージの文字列を取得する
+  const data = "01:" + message; // チャットであることを示すタイプを文字列に加える
+  DATA_CONNECTION.send(data); // 相手に送信する
+
+  /* 時間の取得 */
+  let date = new Date(); // 時間オブジェクトの生成
+  let hour = ("0" + date.getHours()).slice(-2);
+  let minute = ("0" + date.getMinutes()).slice(-2);
+
+  MESSAGE_LIST.innerHTML += `<br>${hour}}:${minute}  You   :<br>&ensp;${message}`; // チャット欄に反映する
+
+  SEND_MESSAGE.value = ''; // 入力欄の初期化
 }
-
-// // 着信側---------------------------------------------------------------------------------------
-// PEER.on('connection', DATA_CONNECTION => {
-
-
-
-
-//   // function onClickSend() {
-//   //   let data = "01:" + SEND_MESSAGE.value;
-//   //   DATA_CONNECTION.send(data);
-//   //   let date = new Date();
-//   //   MESSAGE_LIST.innerHTML += `<br>${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)} You:<br>&ensp;${data.substr(3)}\n`;
-//   //   SEND_MESSAGE.value = '';
-//   // }
-//   //字幕イベントハンドラ(確定する度)
-//   RECOGNITION.onresult = e => {
-//     for (var i = e.resultIndex; i < e.results.length; i++) {
-//       if (!e.results[i].isFinal) continue
-//       const { transcript } = e.results[i][0]
-//       let subtitles = transcript; // 字幕の文字列
-//       const data = "00:" + subtitles;
-//       DATA_CONNECTION.send(data);
-//       console.log("You say, ");
-//       console.log(subtitles);
-//     }
-//   }
-// });
