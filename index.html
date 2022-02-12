@@ -21,7 +21,7 @@
     <h1>MilkyWay</h1>
     <section id="greeting">
       <p>
-        <span>MilkyWay</span>は誰でもお軽にご利用できるビデオチャットサービスです。
+        <span>MilkyWay</span>は誰でもお軽にご利用できる無料のビデオチャットサービスです。
       </p>
     </section>
   </header>
@@ -29,59 +29,76 @@
   <!--コンテンツ-->
   <main>
     <!--ID-->
-    <section id="ID">
-      <p>
-        Your ID: <span id="my-id"></span>
-        <br>
-        お相手のIDを入力してください。
-      </p>
-      <div>
-        <input type="text" placeholder="お相手のID" id="their-id">
-        <button id="make-call">接続</button>
-        <button id="close-call">切断</button>
-      </div>
-    </section>
-
-    <!--情報メディア(映像, チャット)-->
-    <section id="media">
-      <div id="media-left">
-        <video id="their-video" autoplay playsinline></video>
-        <br>
-        <!--<p>字幕：</p>-->
-        <div id="sended-subtitles">
-          字幕機能はOFFになっています。<br>&ensp;設定 &gt; 字幕機能
-        </div>
-      </div>
-
-      <div id="media-right">
-        <video id="my-video" autoplay muted playsinline></video>
-        <!--チャット-->
+    <div id="main-sections">
+      <section id="ID">
         <div>
-          <p>&ensp;メッセージ</p>
-          <div class="messages">
-            <!--preを変更した場合, cssにも目を通せ-->
-            <p id="all-messages"></p>
-          </div>
+          <span>ご自身のニックネームを入力してください。(半角英数)</span>
+          <br>
           <div>
-            <input type="text" placeholder="送信メッセージ" id="send-messages">
-            <button id="send-trigger">送信</button>
+            <input type="text" placeholder="自分のニックネーム" id="my-id">
+            <button id="name-define">決定</button>
+          </div>
+
+        </div>
+        <div id="their">
+          <span style="color:#515151;">お相手のニックネームを入力してください。(半角英数)</span><br>
+          <div>
+            <input type="text" placeholder="相手のニックネーム" id="their-id">
+            <button id="make-call">接続</button>
+            <button id="close-call">切断</button>
           </div>
         </div>
-      </div>
+      </section>
 
-    </section>
+      <!--情報メディア(映像, チャット)-->
+      <section id="media">
+        <div id="media-left">
+          <video id="their-video" autoplay playsinline></video>
+          <br>
+          <!--<p>字幕：</p>-->
+          <div id="sended-subtitles">
+            字幕機能はOFFになっています。<br>&ensp;設定 &gt; 字幕機能
+          </div>
+        </div>
 
-    <section id="option">
-      <ul class="setting">
-        <li>
-          <span>設定</span>
-          <ul>
-            <li><span>字幕機能<input type="checkbox" id="subtitles-btn"></span></li>
-            <li><span>音読機能<input type="checkbox" id="synthesize-btn"></span></li>
-          </ul>
-        </li>
-      </ul>
-    </section>
+        <div id="media-right">
+          <video id="my-video" autoplay muted playsinline></video>
+          <!--チャット-->
+          <div>
+            <p>&ensp;メッセージ</p>
+            <div class="messages">
+              <!--preを変更した場合, cssにも目を通せ-->
+              <p id="all-messages"></p>
+            </div>
+            <div>
+              <input type="text" placeholder="送信メッセージ" id="send-messages">
+              <button id="send-trigger">送信</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section id="option">
+        <ul class="setting">
+          <li>
+            <span>設定</span>
+            <ul>
+              <li><span>字幕機能<input type="checkbox" id="subtitles-btn"></span></li>
+              <li><span>音読機能<input type="checkbox" id="synthesize-btn"></span></li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <div id="questionnaire">
+      <p>
+        サービス向上のためにアンケートにご協力をお願いします。
+      </p>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSe2U-yIbBP8cAlf-cLD5oLBpo91ajw2ZdVYGJgo-vwRG3w7SA/viewform?embedded=true"
+        target="_blank" id="questionnaire-link">アンケート</a>
+    </div>
   </main>
 
   <footer>
@@ -96,17 +113,15 @@
       <summary>ご利用方法</summary>
       <p>
         1. カメラとマイクのアクセスを許可してください。<br>
-        2. お相手のIDをテキストボックスに入力して, 接続ボタンを押してください。<br>
-        3. 字幕機能とメッセージの音読機能は設定メニューのチェックボックスで有効と無効の切り替えができます。<br>
-        4. 切断ボタンを押すことで相手との通信を切ることができます。<br>
+        2. ご自身のニックネームをテキストボックスに入力して, 決定ボタンを押してください。<br>
+        3. 発信される方はお相手のニックネームをテキストボックスに入力して, 接続ボタンを押してください。<br>
+        　 着信される方はお相手が発信されるまでお待ちください。<br>
+        4. 字幕機能とメッセージの音読機能は設定メニューのチェックボックスで有効と無効の切り替えができます。<br>
+        5. 切断ボタンを押すことで相手との通信を切ることができます。<br>
         <br>
         ※ 接続には数分のお時間を要する場合があります。<br>
-        ※ 通信の切断が行われると, このページは自動的にリロードがされて, 新しいIDが表示されます。
+        ※ 通信が切断されると, このページは自動的にリロードがされます。
       </p>
-    </details>
-    <details>
-      <summary>利用規約</summary>
-      <p>details</p>
     </details>
   </footer>
   <script src="./script.js"></script>
