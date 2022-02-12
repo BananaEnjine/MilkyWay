@@ -5,7 +5,10 @@
 const API_KEY = 'c1ff404a-1d46-40c8-a9b1-c6a74bdf07be'; // API key: シグナリングサーバとの通信に必須
 const DEBUG_LEVEL = 3; // デバッグレベル [NONE: 0, ERROR: 1, WARN: 2, FULL: 3]
 
+let PEER_VTR = null; // 既に存在するpeerIDを取得するための仮オブジェクト
+let PEER_LIST = []; // 既に存在するpeerIDを格納する配列
 let PEER = null; // peerオブジェクト(通信を接続する際に必要となるオブジェクト)
+let PTR_NAME; // 通信相手のID
 let DATA_CONNECTION = null; // テキストチャットのルームオブジェクト
 let CONNECTION = false; // 相手と通信中か否か
 
@@ -22,21 +25,26 @@ const INVALID = 1;
 
 
 /* htmlへの紐づけ */
-const SUBTITLES_BUTTON = document.getElementById('subtitles-btn'); // チェックボックス"字幕機能"
-const SYNTHESIS_BUTTON = document.getElementById('synthesize-btn'); // チェックボックス"音読機能"
+const MYNAME_TEXT = document.getElementById('my-id'); // 自分のニックネーム(peerID)
+const DEFINE_BUTTON = document.getElementById('name-define'); // 決定ボタン
+const PTR_TEXT = document.getElementById('their-id'); // 相手のニックネーム(peerID)
 const CONNECTION_BUTTON = document.getElementById('make-call'); // 接続ボタン
 const DISCONNECTION_BUTTON = document.getElementById('close-call'); // 切断ボタン
-const SEND_MESSAGE = document.getElementById('send-messages'); // チャットルームで送信する入力メッセージ
+const SEND_MESSAGE = document.getElementById('send-messages'); // 送信するメッセージのテキストボックス
 const SEND_BUTTON = document.getElementById('send-trigger'); // 送信ボタン
 const MESSAGE_LIST = document.getElementById('all-messages'); // テキストチャットでのメッセージ一覧
-const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 相手の音声を合成した字幕の文字列
+const SUBTITLES_TEXT = document.getElementById('sended-subtitles'); // 字幕欄
+const SUBTITLES_BUTTON = document.getElementById('subtitles-btn'); // チェックボックス"字幕機能"
+const SYNTHESIS_BUTTON = document.getElementById('synthesize-btn'); // チェックボックス"音読機能"
 
 /* htmlへのイベントリスナ */
-SUBTITLES_BUTTON.addEventListener('click', make_subtitles); // チェックボックス"字幕機能" をクリックしたときに発火する
-SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボックス"音読機能"
+DEFINE_BUTTON.addEventListener('click', get_MyPeer); // 決定ボタンを押したときに発火する
 CONNECTION_BUTTON.addEventListener('click', connect); // 接続ボタンを押したときに発火する
 DISCONNECTION_BUTTON.addEventListener('click', disconnect); // 切断ボタンを押したときに発火する
 SEND_BUTTON.addEventListener('click', send_message); // 送信ボタンを押したときにメッセージを送る関数を発火する
+SUBTITLES_BUTTON.addEventListener('click', make_subtitles); // チェックボックス"字幕機能" をクリックしたときに発火する
+SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボックス"音読機能"
+
 
 /*---------------------------*
  |       main function       |
@@ -54,10 +62,11 @@ SEND_BUTTON.addEventListener('click', send_message); // 送信ボタンを押し
     if (speechRecognition_flag = can_SpeechRecognition()) {
       recognition_flag = setUp_SpeechRecognition(); // Web Speech APIに関するグローバル変数の初期化
     }
-
-    PEER = make_PeerObject();
-    setUp_EventHandler_peer(PEER);
   }
+
+  PEER_VTR = make_PeerObject(""); // 既存のpeerIDを取得するための仮PEERオブジェクトを生成する
+  setUp_EventHandler_peer(PEER_VTR, "dis"); // シグナリングサーバのみの通信を行う旨で初期化
+
 }());
 
 /*---------------------------*
@@ -91,98 +100,73 @@ async function can_getMediaDevices() {
 }
 
 
-/*-------------------------------*
- | Web Speech API(音声認識・合成) |
- *-------------------------------*/
-/**************************************************************
- *       APIが使用しているブラウザに対応しているかを調べる       *
- **************************************************************/
-function can_SpeechRecognition() {
-  /* ChromeとFirefoxの両方に対応させる */
-  SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
-
-  /* 使用しているブラウザの対応確認 */
-  if ('SpeechRecognition' in window) { // ブラウザがAPIに対応しているとき
-    console.log("Your browser is supported by Web Speech API");
-
-    return 1;
-  } else { // ブラウザがAPIに対応していないとき
-    alert("お使いのブラウザは音声合成に対応していません。")
-    console.log("Your browser is not supported by Web Speech API");
-
-    return 0;
-  }
-}
-
-/**************************************************************
- *            音声処理に関するグローバル変数の初期化            *
- **************************************************************/
-function setUp_SpeechRecognition() {
-  /* 音声認識: 字幕として文字列を作成する */
-  RECOGNITION = new SpeechRecognition(); // 音声認識オブジェクトの生成
-  RECOGNITION.continuous = true; // 継続的な音声認識の設定
-  RECOGNITION.interimResults = false; // 認識途中の結果を取得するか否か
-  RECOGNITION.lang = 'ja-JP' // 認識する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]  
-  RECOGNITION.onend = reset; // 音声認識が終了したときのイベントリスナ(reset関数を発火させる)
-  let recognition_flag = true;
-  reset(recognition_flag); // 音声認識の自動停止を防ぐ
-
-  /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
-  SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
-  SYNTHESIS.lang = "ja-JP" // 合成する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]
-
-  return recognition_flag;
-}
-
-/**************************************************************
- *                    音声認識の自動停止を防ぐ                 *
- **************************************************************/
-function reset(recognition_flag) {
-  if (recognition_flag) { // 音声認識のフラグをtureに設定しているとき
-    console.log("I continue speech recognition.");
-    RECOGNITION.start()
-  } else {// 音声認識のフラグをfalseに設定しているとき(今回は異常な処理となる)
-    final = "";
-    console.error("Now, I finish speech recognition.");
-  }
-}
-
-/**************************************************************
- *       字幕機能のチェックボックスに関するイベントハンドラ      *
- **************************************************************/
-function make_subtitles() {
-  if (SUBTITLES_BUTTON.checked) {
-    SUBTITLES_TEXT.textContent = "";
-  } else {
-    SUBTITLES_TEXT.innerHTML = "字幕機能はOFFになっています。<br>&ensp;設定 > 字幕機能";
-  }
-  console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
-}
-
-/**************************************************************
- *       音読機能のチェックボックスに関するイベントハンドラ      *
- **************************************************************/
-function make_speech() {
-  if (!SYNTHESIS_BUTTON.checked) { // 音読機能のチェックが外されたとき
-    if (speechSynthesis.speaking) { // 音読中のとき(speechSynthesisはネイティブ?)
-      speechSynthesis.cancel(); // 音読を中断する
-    }
-  }
-  console.log(`The checkbox of speeching is clicked: Its value is ${SYNTHESIS_BUTTON.checked}.`);
-}
-
 /*---------------------------*
  |   SkyWay Javascript SDK   |
  *---------------------------*/
 /**************************************************************
- *                   Peerオブジェクトの生成                    *
+ *                   自身のPeerオブジェクトの生成               *
  **************************************************************/
-function make_PeerObject() {
+ async function get_MyPeer() {
+  if (PEER == null) {
+    let peer_id = MYNAME_TEXT.value;
+
+    /* シグナリングサーバに接続しているPeerIDの取得 */
+    if (PEER_VTR != null) {
+      await PEER_VTR.listAllPeers(list => {
+        PEER_LIST = list;
+      });
+      console.log(`list : ${PEER_LIST}...............................................`);
+    }
+
+    if (peer_id == "") {                        // 何も入力されていないとき
+      alert("ニックネームを入力してください。");
+      console.log("You failed make your Peer object!");
+    } else if (PEER_LIST.includes(peer_id) == true) { // 入力されたIDが既存のものであるとき
+      MYNAME_TEXT.value = "";
+      alert("現在, そのニックネームは使用されています。");
+      console.log("You failed make your Peer object!");
+    } else if (peer_id.match(/[^A-Za-z0-9]+/)) { // 半角英数ではないとき
+      MYNAME_TEXT.value = "";
+      alert("半角英数で入力してください。");
+      console.log("You failed make your Peer object!");
+    } else {
+      let str1 = "ニックネームが作成されました。";
+      let str2 = "発信する方はお相手のニックネームを入力してください。";
+      let str3 = "着信する方はお相手がご自身のニックネームを入力するまでお待ちください。";
+      alert(`${str1}\n\n${str2}\n${str3}`);
+      console.log("You succed make your Peer object!");
+      PEER_VTR.destroy(); // 仮オブジェクトによるシグナリングサーバの通信を切断
+      PEER_VTR = null; // 仮オブジェクトの無効化
+      PEER = make_PeerObject(peer_id); // 通信に使用する自分のpeerオブジェクトを取得する
+      setUp_EventHandler_peer(PEER, "con");
+    }
+  } else {
+    alert("既にニックネームが作成されています。\nニックネームを変更されたい場合はページをリロードしてください。")
+  }
+}
+
+MYNAME_TEXT.innerHTML = '<p>fire</p>';
+
+/**************************************************************
+*                   Peerオブジェクトの生成                    *
+**************************************************************/
+function make_PeerObject(id_name) {
   /* オブジェクトを生成する(任意のPeerIDの設定も可能) */
-  let peer = new Peer({
+  // let id_name = "";
+
+  // if ((MYNAME_TEXT.value != "")) { // 入力したニックネームのIDを作る && (接続済みのIDと同名義ではない)
+  //   id_name = MYNAME_TEXT.value;
+  // }
+
+  // id_nameが空文字の場合は任意の数字の文字列をサーバが与える
+  let peer = new Peer(id_name, {
     key: API_KEY,
     debug: DEBUG_LEVEL
   });
+
+  // if (PEER_VTR != null) {
+  //   PEER_VTR.disconnect();
+  // }
 
   return peer;
 }
@@ -190,7 +174,7 @@ function make_PeerObject() {
 /**************************************************************
  *              相手との通信に関するイベントリスナ              *
  **************************************************************/
-function setUp_EventHandler_peer(peer) {
+function setUp_EventHandler_peer(peer, type) { // boo: サーバのみとの接続の場合は"dis", 相手との接続を行う場合は"con"
   /* peerオブジェクトの有無を調べる */
   if (peer != null) { // オブジェクトが生成されているとき
     console.log("I make Peer Object and try connnecting with Signaling Server...");
@@ -198,37 +182,53 @@ function setUp_EventHandler_peer(peer) {
     /* シグナリングサーバへの接続が成功したときのイベント */
     peer.on('open', () => {
       let peerID = peer.id; // PeerID(=電話番号)の取得
-      document.getElementById('my-id').textContent = peerID; // htmlへの組み込み
+
       console.log("You succeed in connection with signaling server.");
       console.log(`Signaling server give you PeerID: ${peerID}.`);
 
-      /* シグナリングサーバに接続しているPeerIDの取得 */
-      peer.listAllPeers(list => {
-        console.log(list);
+      if (type == "con") {
+        MYNAME_TEXT.textContent = peerID; // htmlへの組み込み
+        console.log("This connection is practical.");
+      } else if (type == "dis") {
+        /* シグナリングサーバに接続しているPeerIDの取得 */
+        peer.listAllPeers(list => {
+          PEER_LIST = list;
+          console.log(`PEER_LIST: ${PEER_LIST}`);
+        });
+        console.log("This connection is virtual.");
+      }
+    });
+
+    /* シグナリングサーバとの接続を切断したときのイベント */
+    peer.on('disconnected', () => {
+      console.log(`You disconnect with signaling server.`);
+    });
+
+    if (type == "con") {
+      /* 自分が相手から着信したときのイベント */
+      peer.on('call', mediaConnection => {
+        alert("着信しました。")
+        mediaConnection.answer(LOCAL_STREAM);
+        PTR_NAME = mediaConnection.remoteId; // 着信した相手のpeerIDの取得
+        setPartnerVideo(mediaConnection); // 発信した相手の映像をhtmlへ反映する
+        console.log("You are maked a call.");
+        console.log("接続先の Peer からメディアチャネル");
       });
-    });
 
-    /* 自分が相手から着信したときのイベント */
-    peer.on('call', mediaConnection => {
-      mediaConnection.answer(LOCAL_STREAM);
-      setPartnerVideo(mediaConnection); // 発信した相手の映像をhtmlへ反映する
-      console.log("You are maked a call.");
-      console.log("接続先の Peer からメディアチャネル");
-    });
+      /* 自分が相手からチャットを開かれたときのイベント */
+      peer.on('connection', dataConnection => {
+        DATA_CONNECTION = dataConnection;
+        setUp_EventHandler_dataConnection(PEER, DATA_CONNECTION);
 
-    /* 自分が相手からチャットを開かれたときのイベント */
-    peer.on('connection', dataConnection => {
-      DATA_CONNECTION = dataConnection;
-      setUp_EventHandler_dataConnection(PEER, DATA_CONNECTION);
+      });
 
-    });
-
-    /* 相手との接続が切断されたときのイベント */
-    peer.on('close', () => {
-      // alert('通信が切断されました。');
-      console.log("The connection is breaked.");
-      // リロードするか否か......................................................................
-    });
+      /* 相手との接続が切断されたときのイベント */
+      peer.on('close', () => {
+        // alert('通信が切断されました。');
+        console.log("The connection is breaked.");
+        // リロードするか否か......................................................................
+      });
+    }
 
     /* 何らかの不具合が生じたときのイベント */
     peer.on('error', function (error) {
@@ -288,7 +288,7 @@ function setUp_EventHandler_dataConnection(peer, dataConnection) {
         let minute = ("0" + date.getMinutes()).slice(-2);
 
         /* チャット欄に反映する */
-        MESSAGE_LIST.innerHTML += `<br>${hour}:${minute}  Remote:<br>&ensp;${str_main}`; // 文字列の作成
+        MESSAGE_LIST.innerHTML += `<br>${hour}:${minute}  ${PTR_NAME}:<br>&ensp;${str_main}`; // 文字列の作成
         console.log("Its type is chat. So, I show message on chat box. ");
 
         /* 音読機能 */
@@ -318,7 +318,6 @@ function setUp_EventHandler_dataConnection(peer, dataConnection) {
       MESSAGE_LIST.innerHTML += `=== チャットルームが閉じられました ===`;
       // SEND_BUTTON.removeEventListener('click', send_message);
       /* +++++++++++++++++++++++++++++++++++++++++++++++++ *
-       * // 可能であれば以下の処理が好ましい                 *
        * 新しいPeerオブジェクトの生成;                      *
        * シグナリングサーバと接続を再開する;                 *
        * +++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -337,18 +336,19 @@ function connect() { // 接続ボタンを押したときに発火する
     console.log("Sorry, because of trouble you can not make call.");
   }
   else {
-    const theirID = document.getElementById('their-id').value;
     if (CONNECTION) { // 既に相手と接続している場合は, この操作を無効にする
+      alert("既に接続しています。通信を終えたいときは切断ボタンを押してください。");
       console.log("Now, you are connecting with partner. So, you can not operate this button.");
       return;
     }
     else {
-      console.log("Now, you do not connnect...");
-      if (!theirID == "") {
+      PTR_NAME = PTR_TEXT.value;
+      console.log("You do not connnect.");
+      if ((!PTR_NAME == "") && (PTR_NAME != PEER.id)) {
         alert("発信中");
         /* 相手に発信し, テキストチャットの開室を試みる */
-        const mediaConnection = PEER.call(theirID, LOCAL_STREAM); // 相手に発信する
-        DATA_CONNECTION = PEER.connect(theirID); // テキストチャットの開室
+        const mediaConnection = PEER.call(PTR_NAME, LOCAL_STREAM); // 相手に発信する
+        DATA_CONNECTION = PEER.connect(PTR_NAME); // テキストチャットの開室
         setUp_EventHandler_dataConnection(PEER, DATA_CONNECTION);
         setPartnerVideo(mediaConnection); // 着信をうける相手の映像をhtmlへ反映する
         console.log("You try making call...");
@@ -408,7 +408,87 @@ function send_message() { // 送信ボタンを押したときに発火する
   let hour = ("0" + date.getHours()).slice(-2);
   let minute = ("0" + date.getMinutes()).slice(-2);
 
-  MESSAGE_LIST.innerHTML += `<br>${hour}}:${minute}  You   :<br>&ensp;${message}`; // チャット欄に反映する
+  MESSAGE_LIST.innerHTML += `<br>${hour}:${minute}  ${PEER.id}   :<br>&ensp;${message}`; // チャット欄に反映する
 
   SEND_MESSAGE.value = ''; // 入力欄の初期化
+}
+
+/*-------------------------------*
+ | Web Speech API(音声認識・合成) |
+ *-------------------------------*/
+/**************************************************************
+ *       APIが使用しているブラウザに対応しているかを調べる       *
+ **************************************************************/
+function can_SpeechRecognition() {
+  /* ChromeとFirefoxの両方に対応させる */
+  SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
+
+  /* 使用しているブラウザの対応確認 */
+  if ('SpeechRecognition' in window) { // ブラウザがAPIに対応しているとき
+    console.log("Your browser is supported by Web Speech API");
+
+    return 1;
+  } else { // ブラウザがAPIに対応していないとき
+    alert("お使いのブラウザは音声合成に対応していません。")
+    console.log("Your browser is not supported by Web Speech API");
+
+    return 0;
+  }
+}
+
+/**************************************************************
+ *            音声処理に関するグローバル変数の初期化            *
+ **************************************************************/
+function setUp_SpeechRecognition() {
+  /* 音声認識: 字幕として文字列を作成する */
+  RECOGNITION = new SpeechRecognition(); // 音声認識オブジェクトの生成
+  RECOGNITION.continuous = true; // 継続的な音声認識の設定
+  RECOGNITION.interimResults = false; // 認識途中の結果を取得するか否か
+  RECOGNITION.lang = 'ja-JP' // 認識する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]  
+  RECOGNITION.onend = reset; // 音声認識が終了したときのイベントリスナ(reset関数を発火させる)
+  let recognition_flag = true;
+  // reset(recognition_flag); // 音声認識の自動停止を防ぐ
+
+  /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
+  SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
+  SYNTHESIS.lang = "ja-JP" // 合成する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]
+
+  return recognition_flag;
+}
+
+/**************************************************************
+ *                    音声認識の自動停止を防ぐ                 *
+ **************************************************************/
+function reset(recognition_flag) {
+  if (recognition_flag) { // 音声認識のフラグをtureに設定しているとき
+    console.log("I continue speech recognition.");
+    RECOGNITION.start()
+  } else {// 音声認識のフラグをfalseに設定しているとき(今回は異常な処理となる)
+    final = "";
+    console.error("Now, I finish speech recognition.");
+  }
+}
+
+/**************************************************************
+ *       字幕機能のチェックボックスに関するイベントハンドラ      *
+ **************************************************************/
+function make_subtitles() {
+  if (SUBTITLES_BUTTON.checked) {
+    SUBTITLES_TEXT.textContent = "";
+  } else {
+    SUBTITLES_TEXT.innerHTML = "字幕機能はOFFになっています。<br>&ensp;設定 > 字幕機能";
+  }
+  console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
+}
+
+/**************************************************************
+ *       音読機能のチェックボックスに関するイベントハンドラ      *
+ **************************************************************/
+function make_speech() {
+  if (!SYNTHESIS_BUTTON.checked) { // 音読機能のチェックが外されたとき
+    if (speechSynthesis.speaking) { // 音読中のとき(speechSynthesisはネイティブ?)
+      speechSynthesis.cancel(); // 音読を中断する
+    }
+  }
+  console.log(`The checkbox of speeching is clicked: Its value is ${SYNTHESIS_BUTTON.checked}.`);
 }
