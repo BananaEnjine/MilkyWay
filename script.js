@@ -52,8 +52,6 @@ SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボッ�
 /* 主にサイトの初期化を行う */
 (async function main() { // 1つの即時関数をmain関数とする(デバイスの確認による遅延を防いで同期的な動きをするためにasync)
   let mediaDevices_flag = false; // デバイスへのアクセスができたか否か
-  let speechRecognition_flag = false; // 音声認識のAPIがブラウザに対応しているか否か
-  let recognition_flag = false; // 音声認識をしているか否か(音声認識のAPIがブラウザに対応していれば常にtrueの状態となる)
 
   mediaDevices_flag = await can_getMediaDevices(); // デバイスを確認する際に遅延が発生するためawait
 
@@ -115,7 +113,7 @@ async function can_getMediaDevices() {
       await PEER_VTR.listAllPeers(list => {
         PEER_LIST = list;
       });
-      console.log(`list : ${PEER_LIST}...............................................`);
+      // console.log(`list : ${PEER_LIST}`);
     }
 
     if (peer_id == "") {                        // 何も入力されていないとき
@@ -152,22 +150,10 @@ MYNAME_TEXT.innerHTML = '<p>fire</p>';
 **************************************************************/
 function make_PeerObject(id_name) {
   /* オブジェクトを生成する(任意のPeerIDの設定も可能) */
-  // let id_name = "";
-
-  // if ((MYNAME_TEXT.value != "")) { // 入力したニックネームのIDを作る && (接続済みのIDと同名義ではない)
-  //   id_name = MYNAME_TEXT.value;
-  // }
-
-  // id_nameが空文字の場合は任意の数字の文字列をサーバが与える
   let peer = new Peer(id_name, {
     key: API_KEY,
     debug: DEBUG_LEVEL
   });
-
-  // if (PEER_VTR != null) {
-  //   PEER_VTR.disconnect();
-  // }
-
   return peer;
 }
 
@@ -207,12 +193,11 @@ function setUp_EventHandler_peer(peer, type) { // boo: サーバのみとの接�
     if (type == "con") {
       /* 自分が相手から着信したときのイベント */
       peer.on('call', mediaConnection => {
-        alert("着信しました。")
-        mediaConnection.answer(LOCAL_STREAM);
         PTR_NAME = mediaConnection.remoteId; // 着信した相手のpeerIDの取得
+        alert(`${PTR_NAME}さんから着信しました。`)
+        mediaConnection.answer(LOCAL_STREAM);
         setPartnerVideo(mediaConnection); // 発信した相手の映像をhtmlへ反映する
         console.log("You are maked a call.");
-        console.log("接続先の Peer からメディアチャネル");
       });
 
       /* 自分が相手からチャットを開かれたときのイベント */
@@ -224,9 +209,7 @@ function setUp_EventHandler_peer(peer, type) { // boo: サーバのみとの接�
 
       /* 相手との接続が切断されたときのイベント */
       peer.on('close', () => {
-        // alert('通信が切断されました。');
         console.log("The connection is breaked.");
-        // リロードするか否か......................................................................
       });
     }
 
@@ -245,6 +228,10 @@ function setUp_EventHandler_peer(peer, type) { // boo: サーバのみとの接�
       } else if (error.type == "peer-unavailable") { // 接続しようとした相手のIDが誤っているとき
         alert("正しい相手方のIDを入力してください");
         console.log("You input wrong partner PeerID. Please tell me correct his PeerID. ");
+      } else if (error.type == "unavailable-id") {
+        alert("現在, そのニックネームは使用されています。\nページをリロードします。");
+        console.log("You failed make your Peer object!");
+        location.reload(); // サイトをリロードする
       }
     });
   } else {
@@ -447,7 +434,7 @@ function setUp_SpeechRecognition() {
   RECOGNITION.lang = 'ja-JP' // 認識する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]  
   RECOGNITION.onend = reset; // 音声認識が終了したときのイベントリスナ(reset関数を発火させる)
   let recognition_flag = true;
-  reset(recognition_flag); // 音声認識の自動停止を防ぐ
+  // reset(recognition_flag); // 音声認識の自動停止を防ぐ
 
   /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
   SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
