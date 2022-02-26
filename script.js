@@ -59,21 +59,6 @@ SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボッ�
   if (mediaDevices_flag) { // 音声認識のAPIがブラウザに対応している場合
     if (speechRecognition_flag = can_SpeechRecognition()) {
       recognition_flag = setUp_SpeechRecognition(); // Web Speech APIに関するグローバル変数の初期化
-
-      /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
-      RECOGNITION.onresult = e => {
-        for (var i = e.resultIndex; i < e.results.length; i++) {
-          if (!e.results[i].isFinal) continue
-          const { transcript } = e.results[i][0]
-          let subtitles = transcript; // 生成された文字列を受け取る
-
-          if (CONNECTION == true) {
-            const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
-            DATA_CONNECTION.send(data); // 相手に送信する
-          }
-          console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
-        }
-      }
     }
   }
 
@@ -438,6 +423,24 @@ function setUp_SpeechRecognition() {
   let recognition_flag = true;
   reset(recognition_flag); // 音声認識の自動停止を防ぐ
 
+  /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
+  RECOGNITION.onresult = e => {
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue
+      const { transcript } = e.results[i][0]
+      let subtitles = transcript; // 生成された文字列を受け取る
+
+      console.log(`I understand that what you speak. It is "${subtitles}."`);
+
+      if (CONNECTION == true) {
+        const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+        DATA_CONNECTION.send(data); // 相手に送信する
+
+        console.log(`I send this message to your partner as subtitles. `);
+      }
+    }
+  }
+
   /* 音声合成: 相手が送信したテキストチャットの文字列を音読する */
   SYNTHESIS = new SpeechSynthesisUtterance(); // 音声合成オブジェクトの生成
   SYNTHESIS.lang = "ja-JP" // 合成する言語の設定 [日本語:ja-JP, アメリカ英語:en-US, イギリス英語:en-GB, 中国語:zh-CN, 韓国語:ko-KR]
@@ -469,6 +472,21 @@ function make_subtitles() {
   }
   console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
 }
+
+// /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
+// RECOGNITION.onresult = e => {
+//   for (var i = e.resultIndex; i < e.results.length; i++) {
+//     if (!e.results[i].isFinal) continue
+//     const { transcript } = e.results[i][0]
+//     let subtitles = transcript; // 生成された文字列を受け取る
+
+//     if (CONNECTION = treu){
+//       const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+//       DATA_CONNECTION.send(data); // 相手に送信する
+//     }
+//     console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
+//     }
+// }
 
 /**************************************************************
  *       音読機能のチェックボックスに関するイベントハンドラ      *
