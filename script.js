@@ -287,19 +287,6 @@ function setUp_EventHandler_dataConnection(peer, dataConnection) {
       }
     });
 
-    /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
-    RECOGNITION.onresult = e => {
-      for (var i = e.resultIndex; i < e.results.length; i++) {
-        if (!e.results[i].isFinal) continue
-        const { transcript } = e.results[i][0]
-        let subtitles = transcript; // 生成された文字列を受け取る
-
-        const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
-        DATA_CONNECTION.send(data); // 相手に送信する
-        console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
-      }
-    }
-
     /* DataConnection#close()が呼ばれたとき, または接続先 Peer とのデータチャネル接続が切断されたとき */
     dataConnection.once('close', () => {
       MESSAGE_LIST.innerHTML += `=== チャットルームが閉じられました ===`;
@@ -468,6 +455,20 @@ function make_subtitles() {
   console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
 }
 
+/* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
+RECOGNITION.onresult = e => {
+  for (var i = e.resultIndex; i < e.results.length; i++) {
+    if (!e.results[i].isFinal) continue
+    const { transcript } = e.results[i][0]
+    let subtitles = transcript; // 生成された文字列を受け取る
+
+    if (CONNECTION = treu){
+      const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+      DATA_CONNECTION.send(data); // 相手に送信する
+    }
+    console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
+    }
+}
 /**************************************************************
  *       音読機能のチェックボックスに関するイベントハンドラ      *
  **************************************************************/
