@@ -59,6 +59,21 @@ SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボッ�
   if (mediaDevices_flag) { // 音声認識のAPIがブラウザに対応している場合
     if (speechRecognition_flag = can_SpeechRecognition()) {
       recognition_flag = setUp_SpeechRecognition(); // Web Speech APIに関するグローバル変数の初期化
+
+      /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
+      RECOGNITION.onresult = e => {
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          if (!e.results[i].isFinal) continue
+          const { transcript } = e.results[i][0]
+          let subtitles = transcript; // 生成された文字列を受け取る
+
+          if (CONNECTION = treu) {
+            const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+            DATA_CONNECTION.send(data); // 相手に送信する
+          }
+          console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
+        }
+      }
     }
   }
 
@@ -104,7 +119,7 @@ async function can_getMediaDevices() {
 /**************************************************************
  *                   自身のPeerオブジェクトの生成               *
  **************************************************************/
- async function get_MyPeer() {
+async function get_MyPeer() {
   if (PEER == null) {
     let peer_id = MYNAME_TEXT.value;
 
@@ -455,20 +470,21 @@ function make_subtitles() {
   console.log(`The checkbox of subtitles is clicked: Its value is ${SUBTITLES_BUTTON.checked}.`);
 }
 
-/* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
-RECOGNITION.onresult = e => {
-  for (var i = e.resultIndex; i < e.results.length; i++) {
-    if (!e.results[i].isFinal) continue
-    const { transcript } = e.results[i][0]
-    let subtitles = transcript; // 生成された文字列を受け取る
+// /* 字幕の生成が確定する度に発火するイベントハンドラ（字幕機能） */
+// RECOGNITION.onresult = e => {
+//   for (var i = e.resultIndex; i < e.results.length; i++) {
+//     if (!e.results[i].isFinal) continue
+//     const { transcript } = e.results[i][0]
+//     let subtitles = transcript; // 生成された文字列を受け取る
 
-    if (CONNECTION = treu){
-      const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
-      DATA_CONNECTION.send(data); // 相手に送信する
-    }
-    console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
-    }
-}
+//     if (CONNECTION = treu){
+//       const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
+//       DATA_CONNECTION.send(data); // 相手に送信する
+//     }
+//     console.log(`I understand that what you speak. It is "${subtitles}." I send this message to your partner as subtitles. `);
+//     }
+// }
+
 /**************************************************************
  *       音読機能のチェックボックスに関するイベントハンドラ      *
  **************************************************************/
