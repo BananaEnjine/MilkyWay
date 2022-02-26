@@ -67,7 +67,7 @@ SYNTHESIS_BUTTON.addEventListener('click', make_speech); // チェックボッ�
           const { transcript } = e.results[i][0]
           let subtitles = transcript; // 生成された文字列を受け取る
 
-          if (CONNECTION = treu) {
+          if (CONNECTION = true) {
             const data = "00:" + subtitles; // 字幕であることを示すタイプを文字列に加える
             DATA_CONNECTION.send(data); // 相手に送信する
           }
