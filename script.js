@@ -2,7 +2,7 @@
  |       グローバル変数       |
  *---------------------------*/
 /* SkyWay Javascript SDK */
-const API_KEY = 'c1ff404a-1d46-40c8-a9b1-c6a74bdf07be'; // API key: シグナリングサーバとの通信に必須
+const API_KEY = 'abb19065-0c2f-4933-8fb3-a622659c258a'; // API key: シグナリングサーバとの通信に必須
 const DEBUG_LEVEL = 3; // デバッグレベル [NONE: 0, ERROR: 1, WARN: 2, FULL: 3]
 
 let PEER_VTR = null; // 既に存在するpeerIDを取得するための仮オブジェクト
